@@ -1,4 +1,4 @@
-![HUPD-Diagram](https://github.com/suzgunmirac/hupd-test/blob/main/figures/HUPD-Logo.png)
+![HUPD-Diagram](https://github.com/suzgunmirac/hupd/blob/main/figures/HUPD-Logo.png)
 
 # The Harvard USPTO Patent Dataset (HUPD)
 This present repository contains the dataset from "[_The Harvard USPTO Patent Dataset: A Large-Scale, Well-Structured, and Multi-Purpose Corpus of Patent Applications_](https://openreview.net/pdf?id=WhTTCWsMrYv)", which is currently under review in the NeurIPS 2021 Datasets and Benchmarks Track.
