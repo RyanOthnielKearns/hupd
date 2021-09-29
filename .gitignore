@@ -1,0 +1,21 @@
+# The file containing environment variables 
+.env
+
+# Ignore IDE specific files
+.idea/
+.vscode/
+*.sw*
+__pycache__/
+*/__pycache__/
+*.csv*
+*.pyc
+
+# Ignore Logs
+logs
+*.log
+
+# Ignore certain directories
+decision_classification/models/
+decision_classification/results/
+ipc_classification/models/
+ipc_classification/results/
