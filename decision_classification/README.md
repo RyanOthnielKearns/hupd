@@ -1,3 +1,20 @@
+# Project Group Notes
+(from Ryan): You should be able to run a basic sanity check on ~10 samples of data with logistic regression like so:
+```
+python main.py \
+  --batch_size 64 \
+  --section abstract \
+  --uniform_split \
+  --max_length 256 \
+  --epoch_n 50 \
+  --model_name logistic_regression \
+  --save_path models/logreg_sample \
+  --tokenizer_save_path models/logreg_sample_tokenizer \
+  --data_dir ../sample_json \
+  --metadata_file ../sample_metadata.feather
+```
+It should be able to get perfect train and val accuracy.
+
 ![HUPD-Diagram](https://github.com/suzgunmirac/hupd/blob/main/figures/HUPD-Logo.png)
 
 # The Harvard USPTO Patent Dataset (HUPD)

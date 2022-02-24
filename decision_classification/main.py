@@ -440,9 +440,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     
     # Dataset
+    parser.add_argument('--metadata_file', default="../sample_metadata.feather", type=str, help='Metadata file.')
     parser.add_argument('--cache_dir', default='/mnt/data/HUPD/cache', type=str, help='Cache directory.')
     parser.add_argument('--data_dir', default='/mnt/data/HUPD/distilled', type=str, help='Patent data directory.')
-    parser.add_argument('--dataset_load_path', default='/mnt/data/HUPD/patents-project-dataset/datasets/patents/patents.py', type=str, help='Patent data main data load path (viz., ../patents.py).')
+    parser.add_argument('--dataset_load_path', default='../sample_dataset.py', type=str, help='Patent data main data load path (viz., ../patents.py).')
     parser.add_argument('--cpc_label', type=str, default=None, help='CPC label for filtering the data.')
     parser.add_argument('--ipc_label', type=str, default=None, help='IPC label for filtering the data.')
     parser.add_argument('--section', type=str, default='abstract', help='Patent application section of interest.')
@@ -519,14 +520,14 @@ if __name__ == '__main__':
 
     # Load the dataset dictionary
     dataset_dict = load_dataset(args.dataset_load_path , 
-        cache_dir=args.cache_dir,
         data_dir=args.data_dir,
-        ipc_label=args.ipc_label,
+        ipcr_label=None,
         cpc_label= args.cpc_label,
-        train_filing_start_date=args.train_filing_start_date, 
-        train_filing_end_date=args.train_filing_end_date,
-        val_filing_start_date=args.val_filing_start_date, 
-        val_filing_end_date=args.val_filing_end_date,
+        metadata_file=args.metadata_file,
+        # train_filing_start_date=args.train_filing_start_date, 
+        # train_filing_end_date=args.train_filing_end_date,
+        # val_filing_start_date=args.val_filing_start_date, 
+        # val_filing_end_date=args.val_filing_end_date,
         val_set_balancer = args.val_set_balancer,
         uniform_split = args.uniform_split,
         )

@@ -1,0 +1,150 @@
+{
+  "version": "1.0",
+  "truncation": null,
+  "padding": {
+    "strategy": "BatchLongest",
+    "direction": "Right",
+    "pad_to_multiple_of": null,
+    "pad_id": 0,
+    "pad_type_id": 3,
+    "pad_token": "[PAD]"
+  },
+  "added_tokens": [
+    {
+      "id": 0,
+      "special": true,
+      "content": "[UNK]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false
+    },
+    {
+      "id": 1,
+      "special": true,
+      "content": "[CLS]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false
+    },
+    {
+      "id": 2,
+      "special": true,
+      "content": "[SEP]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false
+    },
+    {
+      "id": 3,
+      "special": true,
+      "content": "[PAD]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false
+    },
+    {
+      "id": 4,
+      "special": true,
+      "content": "[MASK]",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false
+    }
+  ],
+  "normalizer": {
+    "type": "Sequence",
+    "normalizers": [
+      {
+        "type": "NFD"
+      },
+      {
+        "type": "Lowercase"
+      },
+      {
+        "type": "StripAccents"
+      }
+    ]
+  },
+  "pre_tokenizer": {
+    "type": "Whitespace"
+  },
+  "post_processor": null,
+  "decoder": null,
+  "model": {
+    "type": "WordLevel",
+    "vocab": {
+      "[UNK]": 0,
+      "[CLS]": 1,
+      "[SEP]": 2,
+      "[PAD]": 3,
+      "[MASK]": 4,
+      "the": 5,
+      "a": 6,
+      "and": 7,
+      "-": 8,
+      "(": 9,
+      ",": 10,
+      ".": 11,
+      "of": 12,
+      "in": 13,
+      ")": 14,
+      "for": 15,
+      "milk": 16,
+      "with": 17,
+      "an": 18,
+      "flow": 19,
+      "air": 20,
+      "audio": 21,
+      "data": 22,
+      "inlet": 23,
+      "to": 24,
+      "duct": 25,
+      "first": 26,
+      "by": 27,
+      "device": 28,
+      "or": 29,
+      "pinion": 30,
+      "steering": 31,
+      "are": 32,
+      "blasting": 33,
+      "chamber": 34,
+      "has": 35,
+      "is": 36,
+      "lubricating": 37,
+      "metal": 38,
+      "oil": 39,
+      "rack": 40,
+      "sheet": 41,
+      "source": 42,
+      "which": 43,
+      "),": 44,
+      "/": 45,
+      "2": 46,
+      "8": 47,
+      "at": 48,
+      "being": 49,
+      "element": 50,
+      "having": 51,
+      "high": 52,
+      "housing": 53,
+      "immunogenic": 54,
+      "into": 55,
+      "method": 56,
+      "on": 57,
+      "person": 58,
+      "plurality": 59,
+      "sources": 60,
+      "spoken": 61,
+      "steam": 62,
+      "surface": 63,
+      "system": 64,
+      "utterance": 65
+    },
+    "unk_token": "[UNK]"
+  }
+}
