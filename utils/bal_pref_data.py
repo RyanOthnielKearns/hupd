@@ -27,6 +27,10 @@ elif args.min_year > args.max_year:
 # choose years 2005 - 2017
 years = np.arange(args.min_year, args.max_year + 1, 1)
 
+#all_json_ids = set()
+#for year in np.arange(2005, 2017 + 1, 1):
+#	all_json_ids.add(set([ i.split(".")[0] for i in os.listdir(f"seldata{year}/") ]))
+
 sample_metadata = pd.read_feather(f"hupd_{args.ipc_code}_metadata_2022-03-04.feather")
 
 ## filter to desired year range 
@@ -39,14 +43,14 @@ sample_metadata = sample_metadata.loc[
 	np.logical_or(
 		sample_metadata['decision'] == "ACCEPTED",
 		sample_metadata['decision'] == "REJECTED",
-	)
+	) 
+	#& sample_metadata['application_number'] in all_json_ids
 ].assign(
 	decision_binary = lambda x: np.where(x['decision'] == "ACCEPTED", 1, 0)
 )
 
 # get true statistics 
 true_N = sample_metadata['decision_binary'].shape[0]
-# print(f"{true_N} actual accepted patents")
 true_N_accepted = sample_metadata['decision_binary'].sum()
 true_N_rejected=  true_N - true_N_accepted
 true_data_prop = true_N_accepted / (true_N)
@@ -71,6 +75,8 @@ if desired_N_accepted > true_N_accepted:
 	desired_N_accepted = true_N_accepted
 	desired_N_rejected = int(desired_N_accepted * ((1 - args.bal_prop) / args.bal_prop))
 
+#print(f"Selecting {desired_N_accepted} accepted patents and {desired_N_rejected} rejected patents to fix balance of {args.bal_prop}")
+
 print("Required split for proper balance:")
 print(f"{desired_N_accepted} accepted patents")
 print(f"{desired_N_rejected} rejected patents")
@@ -90,6 +96,7 @@ bal_sample_metadata = pd.concat((sample_metadata_acc, sample_metadata_rej), axis
 ## save
 bal_sample_metadata.to_feather(f"hupd_{args.ipc_code}_metadata_2022-03-04_bal.feather")
 
+# construct balanced data
 bal_json_files = bal_sample_metadata['application_number'] + ".json"
 
 year_min = bal_sample_metadata['filing_date'].dt.year.min()
@@ -105,3 +112,4 @@ for year in year_range:
 	files_in_balanced_sample = set(os.listdir(f"seldata{year}/")).intersection(set(bal_json_files))
 	for jf in files_in_balanced_sample:
 		shutil.move(f"seldata{year}/" + jf, "bal_data/" + jf)
+
