@@ -1,4 +1,5 @@
 import os 
+import shutil
 import pandas as pd 
 import numpy as np
 import argparse 
@@ -30,7 +31,6 @@ true_data_prop = true_N_accepted / (true_N)
 desired_N_accepted = int(parser.bal_prop * true_N)
 desired_N_rejected = true_N - desired_N_accepted
 
-
 # note if we don't have enough for true split
 if desired_N_rejected > true_N_rejected:
 	desired_N_rejected = true_N_rejected
@@ -50,3 +50,26 @@ sample_metadata_rej = sample_metadata.loc[
 bal_sample_metadata = pd.concat((sample_metadata_acc, sample_metadata_rej), axis = 0)
 
 bal_sample_metadata.to_feather(f"hupd_{args.ipc_code}_metadata_2022-03-04_bal.feather")
+
+# construct balanced data
+bal_json_files = bal_sample_metadata['application_number'] + ".json"
+
+year_min = bal_sample_metadata['filing_date'].dt.year.min()
+year_max = bal_sample_metadata['filing_date'].dt.year.max()
+year_range = np.arange(year_min, year_max + 1, 1)
+
+## move files to balanced data folder
+
+if not os.path.exists('bal_data'):
+	os.mkdir('bal_data')
+
+for year in year_range:
+	files_in_balanced_sample = set(os.listdir(f"{year}/")).intersection(set(bal_json_files))
+	for jf in files_in_balanced_sample:
+		shutil.move(f"{year}/" + jf, "bal_data/" + jf)
+
+
+
+
+
+
