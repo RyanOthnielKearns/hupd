@@ -83,6 +83,9 @@ def select_desired_files(year, app_files):
     # remove other files:
     shutil.rmtree(f"{year}")
 
+    # remove tar files
+    os.remove(f"data{year}.tar.gz")
+
 
 
 
