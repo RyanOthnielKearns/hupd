@@ -280,4 +280,5 @@ class Patents(datasets.GeneratorBasedBuilder):
                 'date_published': patent['date_published'],
                 'examiner_id': patent['examiner_id'] if not patent["examiner_id"] == "" else "0",
                 "ipc_label": patent["main_ipcr_label"],
+                "patent_year": patent["patent_year"] if not patent["patent_year"] == "" else "0",
             }
