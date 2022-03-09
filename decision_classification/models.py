@@ -18,13 +18,15 @@ class DistilBertWithExaminerID(nn.Module):
     def __init__(self, config, hidden_dim: int = 768, mlp_dim: int = 128, num_embeddings: int = 10, extras_dim: int = 128, dropout: float = 0.1,
                  ex_id_map: dict = None):
         super().__init__()
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.num_labels = config.num_labels
         self.config = config
-        self.ex_id_map = ex_id_map
+        self.ex_id_map = ex_id_map #.to(device)
 
         self.distilbert = DistilBertModel(config)
         self.dropout = nn.Dropout(dropout)
-        self.embedding = nn.Embedding(num_embeddings, extras_dim)
+        self.embedding = nn.Embedding(num_embeddings, extras_dim, device='cuda' if torch.cuda.is_available() else 'cpu')
+        self.embedding = self.embedding.to(device)
         self.mlp = nn.Sequential(
             nn.Linear(hidden_dim + extras_dim, mlp_dim),
             nn.ReLU(),
@@ -76,6 +78,7 @@ class DistilBertWithExaminerID(nn.Module):
             config.num_labels - 1]`. If `config.num_labels == 1` a regression loss is computed (Mean-Square loss), If
             `config.num_labels > 1` a classification loss is computed (Cross-Entropy).
         """
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         distilbert_output = self.distilbert(
@@ -87,7 +90,7 @@ class DistilBertWithExaminerID(nn.Module):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
-        embedding = self.embedding(torch.tensor([self.ex_id_map[_id.item()] for _id in examiner_id])) # each _id is a 0-dim tensor we need to unpack in order to index
+        embedding = self.embedding(torch.tensor([self.ex_id_map[_id.item()] for _id in examiner_id]).to(device)) # each _id is a 0-dim tensor we need to unpack in order to index
         hidden_state = distilbert_output[0]  # (bs, seq_len, dim)
         pooled_output = hidden_state[:, 0]  # (bs, dim)
         pooled_output = self.dropout(pooled_output)

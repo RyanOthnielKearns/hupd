@@ -95,7 +95,7 @@ def create_model_and_tokenizer(args, train_from_scratch=False, model_name='bert-
                 config = DistilBertConfig(num_labels=CLASSES, output_hidden_states=False) 
                 tokenizer = DistilBertTokenizer.from_pretrained(model_name, do_lower_case=True)
                 model = DistilBertForSequenceClassification(config=config)
-            elif model_name == "skeletal-bert":
+            elif model_name == "skeletal-distilbert":
                 config = DistilBertConfig(num_labels=CLASSES, output_hidden_states=False) 
                 tokenizer = DistilBertTokenizer.from_pretrained(model_name, do_lower_case=True)
                 model = SkeletalDistilBert(config=config)
@@ -124,7 +124,7 @@ def create_model_and_tokenizer(args, train_from_scratch=False, model_name='bert-
                 tokenizer.max_length = max_length
                 tokenizer.model_max_length = max_length
                 model = AutoModelForSequenceClassification.from_config(config=config)
-            elif model_name == "skeletal-bert":
+            elif model_name == "skeletal-distilbert":
                 config = AutoConfig.from_pretrained('distilbert-base-uncased', num_labels=CLASSES, output_hidden_states=False)
                 tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
                 tokenizer.max_length = max_length
@@ -232,7 +232,7 @@ def create_dataset(args, dataset_dict, tokenizer, section='abstract', use_wsampl
             dataset = dataset.map(
                 lambda e: tokenizer(e[section], truncation=True, padding='max_length'),
                 batched=True)
-
+            # dataset["examiner_id"] = [ex_id or "0" for ex_id in dataset["examiner_id"]]
             # we need examiner IDs cast to a format arrow Datasets can accept
             dataset = dataset.cast_column("examiner_id", datasets.features.features.Value(dtype="float"))
 
