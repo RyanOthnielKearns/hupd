@@ -5,6 +5,8 @@ import numpy as np
 import collections
 from tqdm import tqdm
 
+from models import SkeletalDistilBert, DistilBertWithExaminerID
+
 # wandb
 try:
     import wandb
@@ -16,6 +18,7 @@ import torch
 from torch.utils.data import DataLoader, WeightedRandomSampler
 
 # Hugging Face datasets
+import datasets
 from datasets import load_dataset
 
 # Good old Transformer models
@@ -92,6 +95,10 @@ def create_model_and_tokenizer(args, train_from_scratch=False, model_name='bert-
                 config = DistilBertConfig(num_labels=CLASSES, output_hidden_states=False) 
                 tokenizer = DistilBertTokenizer.from_pretrained(model_name, do_lower_case=True)
                 model = DistilBertForSequenceClassification(config=config)
+            elif model_name == "skeletal-bert":
+                config = DistilBertConfig(num_labels=CLASSES, output_hidden_states=False) 
+                tokenizer = DistilBertTokenizer.from_pretrained(model_name, do_lower_case=True)
+                model = SkeletalDistilBert(config=config)
             elif model_name == 'roberta-base':
                 config = RobertaConfig(num_labels=CLASSES, output_hidden_states=False) 
                 tokenizer = RobertaTokenizer.from_pretrained(model_name, do_lower_case=True)
@@ -117,6 +124,24 @@ def create_model_and_tokenizer(args, train_from_scratch=False, model_name='bert-
                 tokenizer.max_length = max_length
                 tokenizer.model_max_length = max_length
                 model = AutoModelForSequenceClassification.from_config(config=config)
+            elif model_name == "skeletal-bert":
+                config = AutoConfig.from_pretrained('distilbert-base-uncased', num_labels=CLASSES, output_hidden_states=False)
+                tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
+                tokenizer.max_length = max_length
+                tokenizer.model_max_length = max_length
+                model = SkeletalDistilBert(config=config)
+            elif model_name == 'distilbert-with-examiner-id':
+                config = AutoConfig.from_pretrained('distilbert-base-uncased', num_labels=CLASSES, output_hidden_states=False)
+                tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
+                tokenizer.max_length = max_length
+                tokenizer.model_max_length = max_length
+
+                all_ex_ids = list(set(dataset_dict["train"]["examiner_id"] + dataset_dict["validation"]["examiner_id"]))
+                ex_id_map = {float(v): k for k, v in enumerate(all_ex_ids)}
+                print("Using examiner_id mapping:")
+                print(ex_id_map)
+                num_embeddings = len(ex_id_map.keys())
+                model = DistilBertWithExaminerID(config=config, num_embeddings=num_embeddings, ex_id_map=ex_id_map)   
             elif model_name in ['lstm', 'cnn', 'big_cnn', 'naive_bayes', 'logistic_regression']:
                 # Word-level tokenizer
                 tokenizer = Tokenizer(WordLevel(unk_token="[UNK]"))
@@ -198,6 +223,8 @@ def create_dataset(args, dataset_dict, tokenizer, section='abstract', use_wsampl
             data_loaders.append(None)
         else:
             dataset = dataset_dict[name]
+            print("***Dataset dict: ***")
+            print(dataset_dict)
             
             print('*** Tokenizing...')
 
@@ -206,9 +233,15 @@ def create_dataset(args, dataset_dict, tokenizer, section='abstract', use_wsampl
                 lambda e: tokenizer(e[section], truncation=True, padding='max_length'),
                 batched=True)
 
+            # we need examiner IDs cast to a format arrow Datasets can accept
+            dataset = dataset.cast_column("examiner_id", datasets.features.features.Value(dtype="float"))
+
             # Set the dataset format
+            print(type(dataset))
             dataset.set_format(type='torch', 
-                columns=['input_ids', 'attention_mask', 'output'])
+                columns=['input_ids', 'attention_mask', 'output', 'examiner_id'])
+
+            num_embeddings = len(set(dataset["examiner_id"]))
 
             # Check if we are using a weighted sampler for the training set
             if use_wsampler and name == 'train':
@@ -226,7 +259,7 @@ def create_dataset(args, dataset_dict, tokenizer, section='abstract', use_wsampl
                     write_file.write(f'*** Weights: {weight}\n')
             else:
                 data_loaders.append(DataLoader(dataset, batch_size=args.batch_size, shuffle=(name=='train')))
-    return data_loaders
+    return data_loaders, num_embeddings
 
 
 # Return label statistics of the dataset loader
@@ -267,6 +300,8 @@ def validation(args, val_loader, model, criterion, device, name='validation', wr
         with torch.no_grad():
             if args.model_name in ['lstm', 'cnn', 'big_cnn', 'naive_bayes', 'logistic_regression']:
                 outputs = model(input_ids=inputs)
+            elif args.model_name == 'distilbert-with-examiner-id':
+                outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"]).logits
             else:
                 outputs = model(input_ids=inputs, labels=decisions).logits
         loss = criterion(outputs, decisions) 
@@ -302,6 +337,7 @@ def train(args, data_loaders, epoch_n, model, optim, scheduler, criterion, devic
         total_train_loss = 0.
         # Loop over the examples in the training set.
         for i, batch in enumerate(tqdm(data_loaders[0])):
+            optim.zero_grad()
             inputs, decisions = batch['input_ids'], batch['output']
             inputs = inputs.to(device, non_blocking=True)
             decisions = decisions.to(device, non_blocking=True)
@@ -309,6 +345,8 @@ def train(args, data_loaders, epoch_n, model, optim, scheduler, criterion, devic
             # Forward pass
             if args.model_name in ['lstm', 'cnn', 'big_cnn', 'logistic_regression']:
                 outputs = model (input_ids=inputs)
+            elif args.model_name == 'distilbert-with-examiner-id':
+                outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"]).logits
             else:
                 outputs = model(input_ids=inputs, labels=decisions).logits
             loss = criterion(outputs, decisions) #outputs.logits
@@ -319,7 +357,6 @@ def train(args, data_loaders, epoch_n, model, optim, scheduler, criterion, devic
             optim.step()
             if scheduler:
                 scheduler.step()
-            optim.zero_grad()
             
             # wandb (optional)
             if args.wandb:
@@ -565,7 +602,7 @@ if __name__ == '__main__':
         model.to(device)
 
     # Load the dataset
-    data_loaders = create_dataset(
+    data_loaders, num_embeddings = create_dataset(
         args = args, 
         dataset_dict = dataset_dict, 
         tokenizer = tokenizer, 
