@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--ipc_code', type=str, default = "G06F1730", help="IPC Code to select: default G06F1730.")
 parser.add_argument('--bal_prop', type=float, default = 0.50, help="Balance proportion (out of 1): higher number --> more accepted.")
 parser.add_argument('--seed', type=int, default = 224, help = "Set the random seed for split reproducibility.")
-parser.add_argument('--min_year', type=int, default = "2004", help="Year to start range at: default 2004.")
+parser.add_argument('--min_year', type=int, default = "2005", help="Year to start range at: default 2004.")
 parser.add_argument('--max_year', type=int, default = "2017", help="Year to end range at: default 2017.")
 
 args = parser.parse_args()
