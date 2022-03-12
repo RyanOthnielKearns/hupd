@@ -151,12 +151,12 @@ def create_model_and_tokenizer(args, train_from_scratch=False, model_name='bert-
                 ex_id_map = {float(v): k for k, v in enumerate(all_ex_ids)}
                 num_examiner_embeddings = len(ex_id_map.keys())
                 if model_name == (model_type + '-with-examiner-id'):
-                    model = MetaBertWithExaminerID(config=config, bert_model_name = model_name, num_embeddings=num_examiner_embeddings, ex_id_map=ex_id_map)
+                    model = MetaBertWithExaminerID(config=config, bert_model_name = model_type, num_embeddings=num_examiner_embeddings, ex_id_map=ex_id_map)
                 else:
                     all_years = list(set(dataset_dict["train"]["patent_year"] + dataset_dict["validation"]["patent_year"]))
                     year_map = {float(v): k for k, v in enumerate(all_years)}
                     num_year_embeddings = len(ex_id_map.keys())
-                    model = MetaBertExIDAndYear(config=config, bert_model_name = model_name, num_examiner_embeddings=num_examiner_embeddings, ex_id_map=ex_id_map,
+                    model = MetaBertExIDAndYear(config=config, bert_model_name = model_type, num_examiner_embeddings=num_examiner_embeddings, ex_id_map=ex_id_map,
                                                   num_year_embeddings=num_year_embeddings, year_map=year_map)
             elif model_name in ['lstm', 'cnn', 'big_cnn', 'naive_bayes', 'logistic_regression']:
                 # Word-level tokenizer
@@ -315,9 +315,9 @@ def validation(args, val_loader, model, criterion, device, name='validation', wr
         with torch.no_grad():
             if args.model_name in ['lstm', 'cnn', 'big_cnn', 'naive_bayes', 'logistic_regression']:
                 outputs = model(input_ids=inputs)
-            elif args.model_name.contains('-with-examiner-id'):
+            elif '-with-examiner-id' in args.model_name:
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"]).logits
-            elif args.model_name.contains('-ex-id-and-year'):
+            elif '-ex-id-and-year' in args.model_name:
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"], year=batch["patent_year"]).logits
             else:
                 outputs = model(input_ids=inputs, labels=decisions).logits
@@ -362,9 +362,9 @@ def train(args, data_loaders, epoch_n, model, optim, scheduler, criterion, devic
             # Forward pass
             if args.model_name in ['lstm', 'cnn', 'big_cnn', 'logistic_regression']:
                 outputs = model (input_ids=inputs)
-            elif args.model_name.contains('-with-examiner-id'):
+            elif '-with-examiner-id' in args.model_name:
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"]).logits
-            elif args.model_name.contains('-ex-id-and-year'):
+            elif '-ex-id-and-year' in args.model_name:
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"], year=batch["patent_year"]).logits
             else:
                 outputs = model(input_ids=inputs, labels=decisions).logits

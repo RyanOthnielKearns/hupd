@@ -24,11 +24,11 @@ class MetaBertWithExaminerID(nn.Module):
         self.config = config
         self.ex_id_map = ex_id_map #.to(device)
 
-        if model_name == "distilbert":
+        if bert_model_name == "distilbert":
             self.model = DistilBertModel(config)
-        elif model_name == "roberta":
+        elif bert_model_name == "roberta":
             self.model = RobertaModel(config)
-        elif model_name == "bert":
+        elif bert_model_name == "bert":
             self.model = BertModel(config)
 
         self.dropout = nn.Dropout(dropout)
@@ -43,7 +43,12 @@ class MetaBertWithExaminerID(nn.Module):
         )
         # self.classifier = nn.Linear(config.dim, config.num_labels)
         
-        self.dropout = nn.Dropout(config.seq_classif_dropout)
+        if bert_model_name == "distilbert":        
+            self.dropout = nn.Dropout(config.seq_classif_dropout)
+        elif bert_model_name == "roberta": 
+            self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        else: 
+            self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
         # Initialize weights and apply final processing
         # self.post_init()
@@ -152,11 +157,11 @@ class MetaBertExIDAndYear(nn.Module):
         self.ex_id_map = ex_id_map
         self.year_map = year_map
 
-        if model_name == "distilbert":
+        if bert_model_name == "distilbert":
             self.model = DistilBertModel(config)
-        elif model_name == "roberta":
+        elif bert_model_name == "roberta":
             self.model = RobertaModel(config)
-        elif model_name == "bert":
+        elif bert_model_name == "bert":
             self.model = BertModel(config)
 
         self.dropout = nn.Dropout(dropout)
@@ -170,8 +175,14 @@ class MetaBertExIDAndYear(nn.Module):
             nn.Linear(mlp_dim, mlp_dim),
             nn.ReLU(),            
             nn.Linear(mlp_dim, self.num_labels)
-        )        
-        self.dropout = nn.Dropout(config.seq_classif_dropout)
+        )
+        if bert_model_name == "distilbert":        
+            self.dropout = nn.Dropout(config.seq_classif_dropout)
+        elif bert_model_name == "roberta": 
+            self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        else: 
+            self.dropout = nn.Dropout(config.hidden_dropout_prob)
+
 
     def get_position_embeddings(self) -> nn.Embedding:
         """
