@@ -166,6 +166,11 @@ class Patents(datasets.GeneratorBasedBuilder):
         # Load metadata file
         df = pd.read_feather(metadata_file)
 
+        ## add patent_year col 
+        df = df.assign(
+            patent_year = lambda x: x['filing_date'].dt.year
+        )
+
         # Filter based on ICPR / CPC label
         if self.config.ipcr_label:
             print(f'Filtering by IPCR label: {self.config.ipcr_label}')
@@ -215,9 +220,9 @@ class Patents(datasets.GeneratorBasedBuilder):
 
         # TODO: We can probably make this step faster
         if self.config.val_set_balancer:
-            rejected_df = val_df[val_df.status == 'REJECTED']
+            rejected_df = val_df[val_df.decision == 'REJECTED']
             num_rejected = len(rejected_df)
-            accepted_df = val_df[val_df.status == 'ACCEPTED']
+            accepted_df = val_df[val_df.decision == 'ACCEPTED']
             num_accepted = len(accepted_df)
             if num_rejected < num_accepted:
                 accepted_df = accepted_df.sample(frac=1.0, random_state=RANDOM_STATE)  # shuffle(accepted_df)
