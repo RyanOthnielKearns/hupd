@@ -306,6 +306,8 @@ def validation(args, val_loader, model, criterion, device, name='validation', wr
                 outputs = model(input_ids=inputs)
             elif args.model_name == 'distilbert-with-examiner-id':
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"]).logits
+            elif args.model_name == 'distilbert-ex-id-and-year':
+                outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"], year=batch["patent_year"]).logits
             else:
                 outputs = model(input_ids=inputs, labels=decisions).logits
         loss = criterion(outputs, decisions) 
@@ -352,7 +354,7 @@ def train(args, data_loaders, epoch_n, model, optim, scheduler, criterion, devic
             elif args.model_name == 'distilbert-with-examiner-id':
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"]).logits
             elif args.model_name == 'distilbert-ex-id-and-year':
-                outputs = model(input_ids=inputs, labels=decisions, examiner_id = batch["examiner_id"], year=batch["patent_year"]).logits
+                outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"], year=batch["patent_year"]).logits
             else:
                 outputs = model(input_ids=inputs, labels=decisions).logits
             loss = criterion(outputs, decisions) #outputs.logits
