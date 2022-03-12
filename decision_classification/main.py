@@ -144,7 +144,7 @@ def create_model_and_tokenizer(args, train_from_scratch=False, model_name='bert-
                      model_config_name = 'bert-base-uncased'
                 config = AutoConfig.from_pretrained(model_config_name, num_labels=CLASSES, output_hidden_states=False)
                 tokenizer = AutoTokenizer.from_pretrained(model_config_name)
-                tokenizer.max_length = max_lengths
+                tokenizer.max_length = max_length
                 tokenizer.model_max_length = max_length
 
                 all_ex_ids = list(set(dataset_dict["train"]["examiner_id"] + dataset_dict["validation"]["examiner_id"]))
