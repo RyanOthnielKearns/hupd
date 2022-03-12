@@ -359,6 +359,7 @@ def train(args, data_loaders, epoch_n, model, optim, scheduler, criterion, devic
     # Best validation set accuracy so far.
     best_val_acc = 0
     for epoch in range(epoch_n):
+        print("*** Epoch:", epoch)
         total_train_loss = 0.
         # Loop over the examples in the training set.
         for i, batch in enumerate(tqdm(data_loaders[0])):
