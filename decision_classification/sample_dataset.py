@@ -55,7 +55,8 @@ _FEATURES = [
     "filing_date",
     "patent_issue_date",
     "date_published",
-    "examiner_id"
+    "examiner_id", 
+    "patent_year"
 ]
 
 
@@ -265,6 +266,8 @@ class Patents(datasets.GeneratorBasedBuilder):
 
             # Most up-to-date-decision in meta dataframe
             decision = x.decision
+            patent["patent_year"] = str(x.patent_year)
+
             yield id_, {
                 "patent_number": application_number,
                 "decision": decision,
@@ -276,9 +279,10 @@ class Patents(datasets.GeneratorBasedBuilder):
                 "summary": patent["summary"],
                 "cpc_label": patent["main_cpc_label"],
                 'filing_date': patent['filing_date'],
+                #"patent_year": pd.to_datetime(patent['filing_date']).year,
                 'patent_issue_date': patent['patent_issue_date'],
                 'date_published': patent['date_published'],
                 'examiner_id': patent['examiner_id'] if not patent["examiner_id"] == "" else "0",
                 "ipc_label": patent["main_ipcr_label"],
-                "patent_year": x["patent_year"] if not x["patent_year"] == "" else "0",
+                "patent_year": patent["patent_year"] if not patent["patent_year"] == "" else "0"
             }

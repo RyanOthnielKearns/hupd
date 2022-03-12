@@ -148,9 +148,9 @@ class DistilBertExIDAndYear(nn.Module):
         self.distilbert = DistilBertModel(config)
         self.dropout = nn.Dropout(dropout)
         self.examiner_embedding = nn.Embedding(num_examiner_embeddings, extras_dim, device='cuda' if torch.cuda.is_available() else 'cpu')
-        self.examiner_embedding = self.embedding.to(device)
+        self.examiner_embedding = self.examiner_embedding.to(device)
         self.year_embedding = nn.Embedding(num_year_embeddings, extras_dim, device='cuda' if torch.cuda.is_available() else 'cpu')
-        self.year_embedding = self.embedding.to(device)
+        self.year_embedding = self.year_embedding.to(device)
         self.mlp = nn.Sequential(
             nn.Linear(hidden_dim + 2*extras_dim, mlp_dim),
             nn.ReLU(),
