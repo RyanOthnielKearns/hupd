@@ -211,7 +211,7 @@ class DistilBertExIDAndYear(nn.Module):
             return_dict=return_dict,
         )
         examiner_embedding = self.examiner_embedding(torch.tensor([self.ex_id_map[_id.item()] for _id in examiner_id]).to(device)) # each _id is a 0-dim tensor we need to unpack in order to index
-        year_embedding = self.year_embedding(torch.tensor([self.year_map[_id.item()] for _id in year].to(device)))
+        year_embedding = self.year_embedding(torch.tensor([self.year_map[_id.item()] for _id in year]).to(device))
         hidden_state = distilbert_output[0]  # (bs, seq_len, dim)
         pooled_output = hidden_state[:, 0]  # (bs, dim)
         pooled_output = self.dropout(pooled_output) # (bs, dim)
