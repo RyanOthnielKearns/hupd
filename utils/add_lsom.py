@@ -14,7 +14,7 @@ args = parser.parse_args()
 metadata = pd.read_feather(args.metadata)
 
 def cv_lsom(df, grp_col, target_col, min_n=10):
-	""" LEAVE SOME OUT MEAN (stupidly named but a lot simpler than a true LOOM)"""
+    """ LEAVE SOME OUT MEAN (stupidly named but a lot simpler than a true LOOM)"""
     k = df['cv_group'].max()+1
     out_col = grp_col + "_" + target_col + "_mean"
     tmp_df = df.groupby([grp_col, "cv_group"])[target_col].agg(
@@ -45,18 +45,19 @@ overall_cv_mean = grp_lsom.groupby(["cv_group"])[out_col].mean().rename(cv_avg_o
 
 # merge all together 
 metadata_lsom = metadata.merge(
-	grp_lsom, on = [args.grp_col, "cv_group"], how = "left"
+    grp_lsom, on = [args.grp_col, "cv_group"], how = "left"
 ).merge(
-	overall_cv_mean, on = ["cv_group"], how = "left"
+    overall_cv_mean, on = ["cv_group"], how = "left"
 )
 
 # replace NAs w/ CV average 
 metadata_lsom[out_col] = np.where(
-		metadata_lsom[out_col].isna(), 
-		metadata_lsom[cv_avg_out_col], metadata_lsom[out_col]
+        metadata_lsom[out_col].isna(), 
+        metadata_lsom[cv_avg_out_col], metadata_lsom[out_col]
 )
 
-metadata_lsom = metadata_lsom.drop(columns = [cv_avg_out_col])
+metadata_lsom["examiner_id_impute_mean"] = metadata_lsom[out_col]
+metadata_lsom = metadata_lsom.drop(columns = [cv_avg_out_col, out_col])
 
 output_path = args.metadata.replace(".feather", "_lsom.feather")
 metadata_lsom.to_feather(output_path)

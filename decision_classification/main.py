@@ -5,7 +5,7 @@ import numpy as np
 import collections
 from tqdm import tqdm
 
-from models import SkeletalDistilBert, MetaBertWithExaminerID, MetaBertExIDAndYear
+from models import SkeletalDistilBert, MetaBertWithExaminerID, MetaBertExIDAndYear, MetaBertExIDImputeAndYear
 
 # wandb
 try:
@@ -131,7 +131,7 @@ def create_model_and_tokenizer(args, train_from_scratch=False, model_name='bert-
                 tokenizer.model_max_length = max_length
                 model = SkeletalDistilBert(config=config)
             elif model_name in [
-                'distilbert-with-examiner-id', 'distilbert-ex-id-and-year', 
+                'distilbert-with-examiner-id', 'distilbert-ex-id-and-year', 'distilbert-ex-id-impute-and-year',
                 'roberta-with-examiner-id', 'roberta-ex-id-and-year',
                 'bert-with-examiner-id', 'bert-ex-id-and-year'
                 ]:
@@ -152,12 +152,17 @@ def create_model_and_tokenizer(args, train_from_scratch=False, model_name='bert-
                 num_examiner_embeddings = len(ex_id_map.keys())
                 if model_name == (model_type + '-with-examiner-id'):
                     model = MetaBertWithExaminerID(config=config, bert_model_name = model_type, num_embeddings=num_examiner_embeddings, ex_id_map=ex_id_map)
-                else:
+                else: 
                     all_years = list(set(dataset_dict["train"]["patent_year"] + dataset_dict["validation"]["patent_year"]))
                     year_map = {float(v): k for k, v in enumerate(all_years)}
                     num_year_embeddings = len(ex_id_map.keys())
-                    model = MetaBertExIDAndYear(config=config, bert_model_name = model_type, num_examiner_embeddings=num_examiner_embeddings, ex_id_map=ex_id_map,
+                    if model_name == (model_type + '-ex-id-and-year'):
+                        model = MetaBertExIDAndYear(config=config, bert_model_name = model_type, num_examiner_embeddings=num_examiner_embeddings, ex_id_map=ex_id_map,
                                                   num_year_embeddings=num_year_embeddings, year_map=year_map)
+                    else: 
+                        model = MetaBertExIDImputeAndYear(config=config, bert_model_name = model_type, num_examiner_embeddings=num_examiner_embeddings, 
+                                                    ex_id_map=ex_id_map, num_year_embeddings=num_year_embeddings, year_map=year_map)
+
             elif model_name in ['lstm', 'cnn', 'big_cnn', 'naive_bayes', 'logistic_regression']:
                 # Word-level tokenizer
                 tokenizer = Tokenizer(WordLevel(unk_token="[UNK]"))
@@ -251,12 +256,13 @@ def create_dataset(args, dataset_dict, tokenizer, section='abstract', use_wsampl
             # dataset["examiner_id"] = [ex_id or "0" for ex_id in dataset["examiner_id"]]
             # we need examiner IDs cast to a format arrow Datasets can accept
             dataset = dataset.cast_column("examiner_id", datasets.features.features.Value(dtype="float"))
+            dataset = dataset.cast_column("examiner_id_impute_mean", datasets.features.features.Value(dtype="float"))
             dataset = dataset.cast_column("patent_year", datasets.features.features.Value(dtype="float"))
 
             # Set the dataset format
             print(type(dataset))
             dataset.set_format(type='torch', 
-                columns=['input_ids', 'attention_mask', 'output', 'examiner_id', 'patent_year'])
+                columns=['input_ids', 'attention_mask', 'output', 'examiner_id', 'examiner_id_impute_mean', 'patent_year'])
 
             # Check if we are using a weighted sampler for the training set
             if use_wsampler and name == 'train':
@@ -319,6 +325,8 @@ def validation(args, val_loader, model, criterion, device, name='validation', wr
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"]).logits
             elif '-ex-id-and-year' in args.model_name:
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"], year=batch["patent_year"]).logits
+            elif '-ex-id-impute-and-year' in args.model_name:
+                outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"], examiner_id_impute_mean=batch["examiner_id_impute_mean"], year=batch["patent_year"]).logits
             else:
                 outputs = model(input_ids=inputs, labels=decisions).logits
         loss = criterion(outputs, decisions) 
@@ -366,6 +374,8 @@ def train(args, data_loaders, epoch_n, model, optim, scheduler, criterion, devic
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"]).logits
             elif '-ex-id-and-year' in args.model_name:
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"], year=batch["patent_year"]).logits
+            elif '-ex-id-impute-and-year' in args.model_name:
+                outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"], examiner_id_impute_mean=batch["examiner_id_impute_mean"], year=batch["patent_year"]).logits
             else:
                 outputs = model(input_ids=inputs, labels=decisions).logits
             loss = criterion(outputs, decisions) #outputs.logits
