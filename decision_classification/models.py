@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
-from transformers import DistilBertForSequenceClassification, DistilBertModel
+from transformers import DistilBertForSequenceClassification, DistilBertModel, RobertaModel, BertModel
 from transformers.modeling_outputs import SequenceClassifierOutput
 
 class SkeletalDistilBert(nn.Module):
@@ -14,8 +14,9 @@ class SkeletalDistilBert(nn.Module):
     def forward(self, input_ids, labels):
         return self.distilbert(input_ids=input_ids, labels=labels)
 
-class DistilBertWithExaminerID(nn.Module):
-    def __init__(self, config, hidden_dim: int = 768, mlp_dim: int = 128, num_embeddings: int = 10, extras_dim: int = 128, dropout: float = 0.1,
+class MetaBertWithExaminerID(nn.Module):
+#class DistilBertWithExaminerID(nn.Module):
+    def __init__(self, config, bert_model_name: str = "distilbert", hidden_dim: int = 768, mlp_dim: int = 128, num_embeddings: int = 10, extras_dim: int = 128, dropout: float = 0.1,
                  ex_id_map: dict = None):
         super().__init__()
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -23,7 +24,13 @@ class DistilBertWithExaminerID(nn.Module):
         self.config = config
         self.ex_id_map = ex_id_map #.to(device)
 
-        self.distilbert = DistilBertModel(config)
+        if model_name == "distilbert":
+            self.model = DistilBertModel(config)
+        elif model_name == "roberta":
+            self.model = RobertaModel(config)
+        elif model_name == "bert":
+            self.model = BertModel(config)
+
         self.dropout = nn.Dropout(dropout)
         self.embedding = nn.Embedding(num_embeddings, extras_dim, device='cuda' if torch.cuda.is_available() else 'cpu')
         self.embedding = self.embedding.to(device)
@@ -45,7 +52,7 @@ class DistilBertWithExaminerID(nn.Module):
         """
         Returns the position embeddings
         """
-        return self.distilbert.get_position_embeddings()
+        return self.model.get_position_embeddings()
 
     def resize_position_embeddings(self, new_num_position_embeddings: int):
         """
@@ -58,7 +65,7 @@ class DistilBertWithExaminerID(nn.Module):
                 size will add correct vectors at the end following the position encoding algorithm, whereas reducing
                 the size will remove vectors from the end.
         """
-        self.distilbert.resize_position_embeddings(new_num_position_embeddings)
+        self.model.resize_position_embeddings(new_num_position_embeddings)
 
     def forward(
         self,
@@ -81,7 +88,7 @@ class DistilBertWithExaminerID(nn.Module):
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        distilbert_output = self.distilbert(
+        model_output = self.model(
             input_ids=input_ids,
             attention_mask=attention_mask,
             head_mask=head_mask,
@@ -91,7 +98,7 @@ class DistilBertWithExaminerID(nn.Module):
             return_dict=return_dict,
         )
         embedding = self.embedding(torch.tensor([self.ex_id_map[_id.item()] for _id in examiner_id]).to(device)) # each _id is a 0-dim tensor we need to unpack in order to index
-        hidden_state = distilbert_output[0]  # (bs, seq_len, dim)
+        hidden_state = model_output[0]  # (bs, seq_len, dim)
         pooled_output = hidden_state[:, 0]  # (bs, dim)
         pooled_output = self.dropout(pooled_output)
         concat_output = torch.cat((pooled_output, embedding), dim=1) # (bs, dim + extras_dim)
@@ -125,18 +132,18 @@ class DistilBertWithExaminerID(nn.Module):
                 loss = loss_fct(logits, labels)
 
         if not return_dict:
-            output = (logits,) + distilbert_output[1:]
+            output = (logits,) + model_output[1:]
             return ((loss,) + output) if loss is not None else output
 
         return SequenceClassifierOutput(
             loss=loss,
             logits=logits,
-            hidden_states=distilbert_output.hidden_states,
-            attentions=distilbert_output.attentions,
+            hidden_states=model_output.hidden_states,
+            attentions=model_output.attentions,
         )
 
-class DistilBertExIDAndYear(nn.Module):
-    def __init__(self, config, hidden_dim: int = 768, mlp_dim: int = 128, num_examiner_embeddings: int = 10, num_year_embeddings: int = 10,
+class MetaBertExIDAndYear(nn.Module):
+    def __init__(self, config, bert_model_name: str = "distilbert", hidden_dim: int = 768, mlp_dim: int = 128, num_examiner_embeddings: int = 10, num_year_embeddings: int = 10,
                  extras_dim: int = 64, dropout: float = 0.1, ex_id_map: dict = None, year_map: dict = None):
         super().__init__()
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -145,7 +152,13 @@ class DistilBertExIDAndYear(nn.Module):
         self.ex_id_map = ex_id_map
         self.year_map = year_map
 
-        self.distilbert = DistilBertModel(config)
+        if model_name == "distilbert":
+            self.model = DistilBertModel(config)
+        elif model_name == "roberta":
+            self.model = RobertaModel(config)
+        elif model_name == "bert":
+            self.model = BertModel(config)
+
         self.dropout = nn.Dropout(dropout)
         self.examiner_embedding = nn.Embedding(num_examiner_embeddings, extras_dim, device='cuda' if torch.cuda.is_available() else 'cpu')
         self.examiner_embedding = self.examiner_embedding.to(device)
@@ -164,7 +177,7 @@ class DistilBertExIDAndYear(nn.Module):
         """
         Returns the position embeddings
         """
-        return self.distilbert.get_position_embeddings()
+        return self.model.get_position_embeddings()
 
     def resize_position_embeddings(self, new_num_position_embeddings: int):
         """
@@ -177,7 +190,7 @@ class DistilBertExIDAndYear(nn.Module):
                 size will add correct vectors at the end following the position encoding algorithm, whereas reducing
                 the size will remove vectors from the end.
         """
-        self.distilbert.resize_position_embeddings(new_num_position_embeddings)
+        self.model.resize_position_embeddings(new_num_position_embeddings)
 
     def forward(
         self,
@@ -201,7 +214,7 @@ class DistilBertExIDAndYear(nn.Module):
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        distilbert_output = self.distilbert(
+        model_output = self.model(
             input_ids=input_ids,
             attention_mask=attention_mask,
             head_mask=head_mask,
@@ -212,7 +225,7 @@ class DistilBertExIDAndYear(nn.Module):
         )
         examiner_embedding = self.examiner_embedding(torch.tensor([self.ex_id_map[_id.item()] for _id in examiner_id]).to(device)) # each _id is a 0-dim tensor we need to unpack in order to index
         year_embedding = self.year_embedding(torch.tensor([self.year_map[_id.item()] for _id in year]).to(device))
-        hidden_state = distilbert_output[0]  # (bs, seq_len, dim)
+        hidden_state = model_output[0]  # (bs, seq_len, dim)
         pooled_output = hidden_state[:, 0]  # (bs, dim)
         pooled_output = self.dropout(pooled_output) # (bs, dim)
         embeddings = torch.cat((examiner_embedding, year_embedding), dim=1) # (bs, 2*extras_dim)
@@ -243,14 +256,14 @@ class DistilBertExIDAndYear(nn.Module):
                 loss = loss_fct(logits, labels)
 
         if not return_dict:
-            output = (logits,) + distilbert_output[1:]
+            output = (logits,) + model_output[1:]
             return ((loss,) + output) if loss is not None else output
 
         return SequenceClassifierOutput(
             loss=loss,
             logits=logits,
-            hidden_states=distilbert_output.hidden_states,
-            attentions=distilbert_output.attentions,
+            hidden_states=model_output.hidden_states,
+            attentions=model_output.attentions,
         )
 
 class LogisticRegression (nn.Module):

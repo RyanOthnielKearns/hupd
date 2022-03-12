@@ -5,7 +5,7 @@ import numpy as np
 import collections
 from tqdm import tqdm
 
-from models import SkeletalDistilBert, DistilBertWithExaminerID, DistilBertExIDAndYear
+from models import SkeletalDistilBert, MetaBertWithExaminerID, MetaBertExIDAndYear
 
 # wandb
 try:
@@ -130,22 +130,33 @@ def create_model_and_tokenizer(args, train_from_scratch=False, model_name='bert-
                 tokenizer.max_length = max_length
                 tokenizer.model_max_length = max_length
                 model = SkeletalDistilBert(config=config)
-            elif model_name in ['distilbert-with-examiner-id', 'distilbert-ex-id-and-year']:
-                config = AutoConfig.from_pretrained('distilbert-base-uncased', num_labels=CLASSES, output_hidden_states=False)
-                tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
-                tokenizer.max_length = max_length
+            elif model_name in [
+                'distilbert-with-examiner-id', 'distilbert-ex-id-and-year', 
+                'roberta-with-examiner-id', 'roberta-ex-id-and-year',
+                'bert-with-examiner-id', 'bert-ex-id-and-year'
+                ]:
+                model_type = model_name.split('-')[0]
+                if model_type == 'distilbert':
+                    model_config_name = 'distilbert-base-uncased' 
+                elif model_type == 'roberta':
+                    model_config_name = 'roberta-base'
+                elif model_type == 'bert':
+                     model_config_name = 'bert-base-uncased'
+                config = AutoConfig.from_pretrained(model_config_name, num_labels=CLASSES, output_hidden_states=False)
+                tokenizer = AutoTokenizer.from_pretrained(model_config_name)
+                tokenizer.max_length = max_lengths
                 tokenizer.model_max_length = max_length
 
                 all_ex_ids = list(set(dataset_dict["train"]["examiner_id"] + dataset_dict["validation"]["examiner_id"]))
                 ex_id_map = {float(v): k for k, v in enumerate(all_ex_ids)}
                 num_examiner_embeddings = len(ex_id_map.keys())
-                if model_name == 'distilbert-with-examiner-id':
-                    model = DistilBertWithExaminerID(config=config, num_embeddings=num_examiner_embeddings, ex_id_map=ex_id_map)
+                if model_name == (model_type + '-with-examiner-id'):
+                    model = MetaBertWithExaminerID(config=config, bert_model_name = model_name, num_embeddings=num_examiner_embeddings, ex_id_map=ex_id_map)
                 else:
                     all_years = list(set(dataset_dict["train"]["patent_year"] + dataset_dict["validation"]["patent_year"]))
                     year_map = {float(v): k for k, v in enumerate(all_years)}
                     num_year_embeddings = len(ex_id_map.keys())
-                    model = DistilBertExIDAndYear(config=config, num_examiner_embeddings=num_examiner_embeddings, ex_id_map=ex_id_map,
+                    model = MetaBertExIDAndYear(config=config, bert_model_name = model_name, num_examiner_embeddings=num_examiner_embeddings, ex_id_map=ex_id_map,
                                                   num_year_embeddings=num_year_embeddings, year_map=year_map)
             elif model_name in ['lstm', 'cnn', 'big_cnn', 'naive_bayes', 'logistic_regression']:
                 # Word-level tokenizer
@@ -304,9 +315,9 @@ def validation(args, val_loader, model, criterion, device, name='validation', wr
         with torch.no_grad():
             if args.model_name in ['lstm', 'cnn', 'big_cnn', 'naive_bayes', 'logistic_regression']:
                 outputs = model(input_ids=inputs)
-            elif args.model_name == 'distilbert-with-examiner-id':
+            elif args.model_name.contains('-with-examiner-id'):
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"]).logits
-            elif args.model_name == 'distilbert-ex-id-and-year':
+            elif args.model_name.contains('-ex-id-and-year'):
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"], year=batch["patent_year"]).logits
             else:
                 outputs = model(input_ids=inputs, labels=decisions).logits
@@ -351,9 +362,9 @@ def train(args, data_loaders, epoch_n, model, optim, scheduler, criterion, devic
             # Forward pass
             if args.model_name in ['lstm', 'cnn', 'big_cnn', 'logistic_regression']:
                 outputs = model (input_ids=inputs)
-            elif args.model_name == 'distilbert-with-examiner-id':
+            elif args.model_name.contains('-with-examiner-id'):
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"]).logits
-            elif args.model_name == 'distilbert-ex-id-and-year':
+            elif args.model_name.contains('-ex-id-and-year'):
                 outputs = model(input_ids=inputs, labels=decisions, examiner_id=batch["examiner_id"], year=batch["patent_year"]).logits
             else:
                 outputs = model(input_ids=inputs, labels=decisions).logits
