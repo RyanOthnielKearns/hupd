@@ -132,8 +132,8 @@ def create_model_and_tokenizer(args, train_from_scratch=False, model_name='bert-
                 model = SkeletalDistilBert(config=config)
             elif model_name in [
                 'distilbert-with-examiner-id', 'distilbert-ex-id-and-year', 'distilbert-ex-id-impute-and-year',
-                'roberta-with-examiner-id', 'roberta-ex-id-and-year',
-                'bert-with-examiner-id', 'bert-ex-id-and-year'
+                'roberta-with-examiner-id', 'roberta-ex-id-and-year', 'roberta-ex-id-impute-and-year',
+                'bert-with-examiner-id', 'bert-ex-id-and-year', 'bert-ex-id-impute-and-year'
                 ]:
                 model_type = model_name.split('-')[0]
                 if model_type == 'distilbert':
@@ -653,8 +653,7 @@ if __name__ == '__main__':
     
 
     if args.model_name == 'naive_bayes': 
-        tokenizer.save("multilabel_ipc_nb_abstract.json") ## GET RID OF THIS
-        print('Here we are!')
+        #print('Here we are!')
         train_naive_bayes(data_loaders, tokenizer, vocab_size, args.naive_bayes_version, args.alpha_smooth_val, write_file, args.np_filename)
     else:
         # Optimizer
