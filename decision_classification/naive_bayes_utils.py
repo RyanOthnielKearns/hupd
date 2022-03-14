@@ -1,12 +1,33 @@
 # PyTorch
 import torch
 
+# standard
 import random
 import numpy as np
 import collections
 from tqdm import tqdm
 
+# sklearn 
+from sklearn.metrics import confusion_matrix
 from sklearn.naive_bayes import BernoulliNB, MultinomialNB
+
+# Fixing the random seeds
+RANDOM_SEED = 1729
+torch.manual_seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+random.seed(RANDOM_SEED)
+
+# Number of classes (ACCEPTED and REJECTED)
+CLASSES = 2
+CLASS_NAMES = [i for i in range(CLASSES)]
+
+# Calculate TOP1 accuracy
+def measure_accuracy(outputs, labels):
+    preds = np.argmax(outputs, axis=1).flatten()
+    labels = labels.flatten()
+    correct = np.sum(preds == labels)
+    c_matrix = confusion_matrix(labels, preds, labels=CLASS_NAMES)
+    return correct, len(labels), c_matrix
 
 # Create a BoW (Bag-of-Words) representation
 def text2bow(input, vocab_size):
