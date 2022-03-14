@@ -32,6 +32,8 @@ from transformers import PreTrainedTokenizerFast
 
 # Import the sklearn Multinomial Naive Bayes
 from sklearn.naive_bayes import BernoulliNB, MultinomialNB
+# import naive_bayes_utils 
+import naive_bayes_utils
 
 # Simple LSTM, CNN, and Logistic regression models
 from models import BasicCNNModel, BigCNNModel, LogisticRegression
@@ -60,16 +62,7 @@ random.seed(RANDOM_SEED)
 CLASSES = 2
 CLASS_NAMES = [i for i in range(CLASSES)]
 
-# Create a BoW (Bag-of-Words) representation
-def text2bow(input, vocab_size):
-    arr = []
-    for i in range(input.shape[0]):
-        query = input[i]
-        features = [0] * vocab_size
-        for j in range(query.shape[0]):
-            features[query[j]] += 1 # todo: for Multinomial (initially +1)
-        arr.append(features)
-    return np.array(arr)
+
 
 # Create model and tokenizer
 def create_model_and_tokenizer(args, train_from_scratch=False, model_name='bert-base-uncased', dataset=None, section='abstract', vocab_size=10000, embed_dim=200, n_classes=CLASSES, max_length=512):
@@ -444,63 +437,6 @@ def train(args, data_loaders, epoch_n, model, optim, scheduler, criterion, devic
         write_file.write(f'\n*** Highest accuracy on the validation set: {best_val_acc}.')
 
 
-# Evaluation procedure (for the Naive Bayes models)
-def validation_naive_bayes(data_loader, model, vocab_size, name='validation', write_file=None, pad_id=-1):
-    total_loss = 0.
-    total_correct = 0
-    total_sample = 0
-    total_confusion = np.zeros((CLASSES, CLASSES))
-    
-    # Loop over all the examples in the evaluation set
-    for i, batch in enumerate(tqdm(data_loader)):
-        input, label = batch['input_ids'], batch['output']
-        input = text2bow(input, vocab_size)
-        input[:, pad_id] = 0
-        logit = model.predict_log_proba(input)
-        label = np.array(label.flatten()) 
-        correct_n, sample_n, c_matrix = measure_accuracy(logit, label)
-        total_confusion += c_matrix
-        total_correct += correct_n
-        total_sample += sample_n
-    print(f'*** Accuracy on the {name} set: {total_correct/total_sample}')
-    print(f'*** Confusion matrix:\n{total_confusion}')
-    if write_file:
-        write_file.write(f'*** Accuracy on the {name} set: {total_correct/total_sample}\n')
-        write_file.write(f'*** Confusion matrix:\n{total_confusion}\n')
-    return total_loss, float(total_correct/total_sample) * 100.
-
-
-# Training procedure (for the Naive Bayes models)
-def train_naive_bayes(data_loaders, tokenizer, vocab_size, version='Bernoulli', alpha=1.0, write_file=None, np_filename=None):
-    pad_id = tokenizer.encode('[PAD]') # NEW
-    print(f'Training a {version} Naive Bayes classifier (with alpha = {alpha})...')
-    write_file.write(f'Training a {version} Naive Bayes classifier (with alpha = {alpha})...\n')
-
-    # Bernoulli or Multinomial?
-    if version == 'Bernoulli':
-        model = BernoulliNB(alpha=alpha) 
-    elif version == 'Multinomial':
-        model = MultinomialNB(alpha=alpha) 
-    
-    # Loop over all the examples in the training set
-    for i, batch in enumerate(tqdm(data_loaders[0])):
-        input, decision = batch['input_ids'], batch['output']
-        input = text2bow(input, vocab_size) # change text2bow(input[0], vocab_size)
-        input[:, pad_id] = 0 # get rid of the paddings
-        label = np.array(decision.flatten())
-        # Using "partial fit", instead of "fit", to avoid any potential memory problems
-        # model.partial_fit(np.array([input]), np.array([label]), classes=CLASS_NAMES)
-        model.partial_fit(input, label, classes=CLASS_NAMES)
-    
-    print('\n*** Accuracy on the training set ***')
-    validation_naive_bayes(data_loaders[0], model, vocab_size, 'training', write_file, pad_id)
-    print('\n*** Accuracy on the validation set ***')
-    validation_naive_bayes(data_loaders[1], model, vocab_size, 'validation', write_file, pad_id)
-    
-    # Save the log probabilities if np_filename is specified
-    if np_filename:
-        np.save(f'{np_filename}.npy', np.array(model.feature_log_prob_))
-
 if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
@@ -591,10 +527,6 @@ if __name__ == '__main__':
         ipcr_label=None,
         cpc_label= args.cpc_label,
         metadata_file=args.metadata_file,
-        # train_filing_start_date=args.train_filing_start_date, 
-        # train_filing_end_date=args.train_filing_end_date,
-        # val_filing_start_date=args.val_filing_start_date, 
-        # val_filing_end_date=args.val_filing_end_date,
         val_set_balancer = args.val_set_balancer,
         uniform_split = args.uniform_split,
         )
@@ -653,8 +585,7 @@ if __name__ == '__main__':
     
 
     if args.model_name == 'naive_bayes': 
-        #print('Here we are!')
-        train_naive_bayes(data_loaders, tokenizer, vocab_size, args.naive_bayes_version, args.alpha_smooth_val, write_file, args.np_filename)
+        naive_bayes_utils.train_naive_bayes(data_loaders, tokenizer, vocab_size, args.naive_bayes_version, args.alpha_smooth_val, write_file, args.np_filename)
     else:
         # Optimizer
         if args.model_name in ['logistic_regression', 'cnn', 'big_cnn', 'lstm']:

@@ -46,9 +46,9 @@ class MetaBertWithExaminerID(nn.Module):
         if bert_model_name == "distilbert":        
             self.dropout = nn.Dropout(config.seq_classif_dropout)
         elif bert_model_name == "roberta": 
-            self.dropout = nn.Dropout(config.hidden_dropout_prob)
+            self.dropout = nn.Dropout(0.2)
         else: 
-            self.dropout = nn.Dropout(config.hidden_dropout_prob)
+            self.dropout = nn.Dropout(0.2)
 
         # Initialize weights and apply final processing
         # self.post_init()
@@ -179,9 +179,9 @@ class MetaBertExIDAndYear(nn.Module):
         if bert_model_name == "distilbert":        
             self.dropout = nn.Dropout(config.seq_classif_dropout)
         elif bert_model_name == "roberta": 
-            self.dropout = nn.Dropout(config.hidden_dropout_prob)
+            self.dropout = nn.Dropout(0.2)
         else: 
-            self.dropout = nn.Dropout(config.hidden_dropout_prob)
+            self.dropout = nn.Dropout(0.2)
 
 
     def get_position_embeddings(self) -> nn.Embedding:
@@ -313,9 +313,9 @@ class MetaBertExIDImputeAndYear(nn.Module):
         if bert_model_name == "distilbert":        
             self.dropout = nn.Dropout(config.seq_classif_dropout)
         elif bert_model_name == "roberta": 
-            self.dropout = nn.Dropout(config.hidden_dropout_prob)
+            self.dropout = nn.Dropout(0.2)
         else: 
-            self.dropout = nn.Dropout(config.hidden_dropout_prob)
+            self.dropout = nn.Dropout(0.2)
 
 
     def get_position_embeddings(self) -> nn.Embedding:
