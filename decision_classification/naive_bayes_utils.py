@@ -1,8 +1,12 @@
+# PyTorch
+import torch
 
 import random
 import numpy as np
 import collections
 from tqdm import tqdm
+
+from sklearn.naive_bayes import BernoulliNB, MultinomialNB
 
 # Create a BoW (Bag-of-Words) representation
 def text2bow(input, vocab_size):
